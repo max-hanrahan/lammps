@@ -38,7 +38,7 @@
 using namespace LAMMPS_NS;
 using namespace FixConst;
 
-static constexpr double BIG = 1.0e20;
+#define BIG 1.0e20
 
 /* ---------------------------------------------------------------------- */
 
@@ -56,10 +56,10 @@ FixMolSwap::FixMolSwap(LAMMPS *lmp, int narg, char **arg) :
 
   // parse args
 
-  nevery = utils::inumeric(FLERR, arg[3], false, lmp);
-  ncycles = utils::inumeric(FLERR, arg[4], false, lmp);
-  itype = utils::expand_type_int(FLERR, arg[5], Atom::ATOM, lmp);
-  jtype = utils::expand_type_int(FLERR, arg[6], Atom::ATOM, lmp);
+  nevery = utils::inumeric(FLERR,arg[3],false,lmp);
+  ncycles = utils::inumeric(FLERR,arg[4],false,lmp);
+  itype = utils::inumeric(FLERR,arg[5],false,lmp);
+  jtype = utils::inumeric(FLERR,arg[6],false,lmp);
   seed = utils::inumeric(FLERR,arg[7],false,lmp);
   double temperature = utils::numeric(FLERR,arg[8],false,lmp);
 
@@ -294,16 +294,16 @@ int FixMolSwap::attempt_swap()
   for (int i = 0; i < nlocal; i++) {
     if (molecule[i] != molID) continue;
     if (!(mask[i] & groupbit)) continue;
-    if (type[i] == itype) {
-      type[i] = jtype;
+    if ((type[i] == itype) || (type[i] == equiv(itype))) {
+      type[i] = trans(type[i]);
       if (qflag) q[i] = jq;
       if (ke_flag) {
         v[i][0] *= i2j_vscale;
         v[i][1] *= i2j_vscale;
         v[i][2] *= i2j_vscale;
       }
-    } else if (type[i] == jtype) {
-      type[i] = itype;
+    } else if ((type[i] == jtype) || (type[i] == equiv(jtype))) {
+      type[i] = trans(type[i]);
       if (qflag) q[i] = iq;
       if (ke_flag) {
         v[i][0] *= j2i_vscale;
@@ -347,16 +347,16 @@ int FixMolSwap::attempt_swap()
   for (int i = 0; i < nlocal; i++) {
     if (molecule[i] != molID) continue;
     if (!(mask[i] & groupbit)) continue;
-    if (type[i] == itype) {
-      type[i] = jtype;
+    if ((type[i] == itype) || (type[i] == equiv(itype))) {
+      type[i] = trans(type[i]);
       if (qflag) q[i] = jq;
       if (ke_flag) {
         v[i][0] *= i2j_vscale;
         v[i][1] *= i2j_vscale;
         v[i][2] *= i2j_vscale;
       }
-    } else if (type[i] == jtype) {
-      type[i] = itype;
+    } else if ((type[i] == jtype) || (type[i] == equiv(jtype))) {
+      type[i] = trans(type[i]);
       if (qflag) q[i] = iq;
       if (ke_flag) {
         v[i][0] *= j2i_vscale;
@@ -502,3 +502,26 @@ void FixMolSwap::restart(char *buf)
   if (ntimestep_restart != update->ntimestep)
     error->all(FLERR,"Must not reset timestep when restarting fix mol/swap");
 }
+
+/* ----------------------------------------------------------------------
+   my custom mapping for switching multiple atom types
+------------------------------------------------------------------------- */
+
+int FixMolSwap::trans(int mytype)
+{
+  int newtype = (mytype + 2) % 4;
+  if (newtype==0) {
+    newtype = 4;
+  }
+  return newtype;
+}
+
+/* ----------------------------------------------------------------------
+   switch betweeen reactive and non-reactive types on same chain
+------------------------------------------------------------------------- */
+
+int FixMolSwap::equiv(int nonreact)
+{
+  return nonreact + 1;
+}
+

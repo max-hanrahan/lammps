@@ -36,6 +36,8 @@ class FixMolSwap : public Fix {
   double compute_vector(int) override;
   void write_restart(FILE *) override;
   void restart(char *) override;
+  int trans(int); // my custom map for swapping atom types
+  int equiv(int); // switch from reactive to non-reactive types
 
  private:
   int nevery, ncycles, seed;
