@@ -509,11 +509,14 @@ void FixMolSwap::restart(char *buf)
 
 int FixMolSwap::trans(int mytype)
 {
-  int newtype = (mytype + 2) % 4;
-  if (newtype==0) {
-    newtype = 4;
+  if (mytype%2==0) {
+    mytype--;
   }
-  return newtype;
+  else {
+    mytype++;
+  }
+
+  return mytype;
 }
 
 /* ----------------------------------------------------------------------
@@ -522,6 +525,6 @@ int FixMolSwap::trans(int mytype)
 
 int FixMolSwap::equiv(int nonreact)
 {
-  return nonreact + 1;
+  return nonreact + 2;
 }
 
